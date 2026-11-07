@@ -1,11 +1,19 @@
 """Normalized models independent of any provider-specific response schema."""
 
 import unicodedata
-from datetime import datetime
 from enum import Enum
 from typing import Annotated
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, Strict, StrictBool, StrictInt, field_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    Strict,
+    StrictBool,
+    StrictInt,
+    field_validator,
+)
 
 
 def valid_identifier(value: str) -> str:

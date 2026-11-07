@@ -87,9 +87,8 @@ def test_source_host_and_base_path_preserved() -> None:
 
 @pytest.mark.parametrize("body", [b'{"ok": NaN}', b'{"ok":true,"ok":false}', b"<html></html>"])
 def test_rejects_malformed_json_without_payload_leak(body: bytes) -> None:
-    with _mock(httpx.Response(200, content=body, headers={"Content-Type": "application/json"})) as client:
-        with pytest.raises(SimproResponseError) as raised:
-            client.get_json("/jobs/demo")
+    with _mock(httpx.Response(200, content=body, headers={"Content-Type": "application/json"})) as client, pytest.raises(SimproResponseError) as raised:
+        client.get_json("/jobs/demo")
     assert body.decode() not in repr(raised.value)
 
 
@@ -100,17 +99,15 @@ def test_rejects_compression_and_oversized_content() -> None:
         content=compressed,
         headers={"Content-Type": "application/json", "Content-Encoding": "gzip"},
     )
-    with _mock(response) as client:
-        with pytest.raises(SimproResponseError):
-            client.get_json("/jobs/demo")
+    with _mock(response) as client, pytest.raises(SimproResponseError):
+        client.get_json("/jobs/demo")
     response = httpx.Response(
         200,
         content=b" " * 128,
         headers={"Content-Type": "application/json"},
     )
-    with _mock(response, max_response_bytes=64) as client:
-        with pytest.raises(SimproResponseError):
-            client.get_json("/jobs/demo")
+    with _mock(response, max_response_bytes=64) as client, pytest.raises(SimproResponseError):
+        client.get_json("/jobs/demo")
 
 
 def test_http_exception_has_no_headers_or_response() -> None:
@@ -120,9 +117,8 @@ def test_http_exception_has_no_headers_or_response() -> None:
         headers={"Location": "https://example.invalid/?private=1"},
     )
     config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
-    with SimproClient(config, transport=httpx.MockTransport(lambda _req: response), token="SECRET-TOKEN") as client:
-        with pytest.raises(SimproHTTPError) as raised:
-            client.get_json("/jobs/demo")
+    with SimproClient(config, transport=httpx.MockTransport(lambda _req: response), token="SECRET-TOKEN") as client, pytest.raises(SimproHTTPError) as raised:
+        client.get_json("/jobs/demo")
     error = raised.value
     assert error.status_code == 401
     assert "SECRET-TOKEN" not in repr(error)
@@ -136,21 +132,18 @@ def test_transport_failure_sanitized() -> None:
     def fail(_request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("sensitive-url-or-token")
     config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
-    with SimproClient(config, transport=httpx.MockTransport(fail), token="SECRET-TOKEN") as client:
-        with pytest.raises(SimproTransportError) as raised:
-            client.get_json("/jobs/demo")
+    with SimproClient(config, transport=httpx.MockTransport(fail), token="SECRET-TOKEN") as client, pytest.raises(SimproTransportError) as raised:
+        client.get_json("/jobs/demo")
     assert raised.value.__context__ is None
 
 
 def test_no_live_network_without_approved_host_and_token() -> None:
     config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
-    with SimproClient(config) as client:
-        with pytest.raises(LiveAccessDisabled):
-            client.get_json("/jobs/demo")
+    with SimproClient(config) as client, pytest.raises(LiveAccessDisabled):
+        client.get_json("/jobs/demo")
 
 
 def test_nonstring_path_fails_closed() -> None:
     config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
-    with SimproClient(config, transport=httpx.MockTransport(lambda _r: pytest.fail("network"))) as client:
-        with pytest.raises(EndpointNotAllowed):
-            client.get_json(123)
+    with SimproClient(config, transport=httpx.MockTransport(lambda _r: pytest.fail("network"))) as client, pytest.raises(EndpointNotAllowed):
+        client.get_json(123)

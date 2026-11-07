@@ -190,7 +190,7 @@ class SimproClient:
                             response_error = True
                             break
                         body.extend(chunk)
-        except Exception:
+        except Exception:  # noqa: BLE001 - sanitize all transport exceptions
             # Deliberately raise only after leaving the handler. Underlying httpx
             # exceptions retain request auth headers and potentially response data.
             transport_error = True

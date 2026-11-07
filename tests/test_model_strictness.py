@@ -1,6 +1,6 @@
 """Guard against silently coercing unverified administrative facts."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -34,6 +34,6 @@ def test_provenance_accepts_aware_datetime() -> None:
     record = Provenance(
         system="synthetic_fixture",
         source_id="demo",
-        observed_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
     assert record.observed_at is not None
