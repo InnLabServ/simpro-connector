@@ -2,10 +2,11 @@
 
 The design separates provider access, normalization and downstream reconciliation:
 
-1. **Transport:** An allowlisted, GET-only client. The shipping package has no POST/PATCH/PUT/DELETE operation.
-2. **Provider mapping (future):** Map verified Simpro responses to explicit normalized models. Do not guess field names or assert API coverage before testing against current documentation.
-3. **Reconciliation (future):** Compare administrative facts with a separately maintained engineering register. Generate a proposed diff with source provenance; do not silently overwrite disputed values.
-4. **Delivery (future):** An authenticated integration or MCP server exposing deliberately restricted read operations. This project does not implement or deploy one yet.
+1. **Transport (implemented foundation):** An allowlisted, GET-only client. The shipping package has no POST/PATCH/PUT/DELETE operation.
+2. **Normalization and offline lookup (implemented):** Strict normalized models and `OfflineJobRepository` support deterministic exact lookup of synthetic records, explicit missing/ambiguous outcomes and unknown state preservation. See [Offline lookup](offline-lookup.md).
+3. **Provider mapping (future):** Map verified Simpro responses to explicit normalized models. Do not guess field names or assert API coverage before testing against current documentation.
+4. **Reconciliation (future):** Compare administrative facts with a separately maintained engineering register. Generate a proposed diff with source provenance; do not silently overwrite disputed values.
+5. **Delivery (future):** An authenticated integration or MCP server exposing deliberately restricted read operations. This project does not implement or deploy one yet.
 
 ## Authority boundaries
 

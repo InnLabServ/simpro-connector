@@ -1,43 +1,52 @@
-# Simpro API reconnaissance (public documentation only)
+# Simpro API discovery: verified headings and unknown contracts
 
-Status: **documentation discovery, not a validated implementation contract**. Last reviewed 2026-11-07.
+**Status:** public documentation reconnaissance, **not** a validated Simpro-native implementation contract. Reviewed for this repository on **2026-11-07**.
 
-## Official sources
+## Primary public entry points
 
-- [Simpro Developer Center](https://developer.simprogroup.com/)
-- [Simpro API documentation](https://developer.simprogroup.com/apidoc/)
-- [Getting started and OAuth2](https://developer.simprogroup.com/apidoc/)
+- [Official Simpro Developer Center](https://developer.simprogroup.com/)
+- [Official API documentation index](https://developer.simprogroup.com/apidoc/)
 
-The official documentation describes the service as a REST API using OAuth2 and says a Swagger/OpenAPI 2.0 specification is available. Its navigation visibly includes **Jobs**, **Job Cost Centers**, **Customers**, **Sites**, **Schedules**, **Vendor/Supplier Orders**, **Status Codes** and **Work Orders / Job Cards**.
+The documentation navigation identifies resource areas including **Jobs**, **Job Cost Centers**, **Customers**, **Sites**, **Schedules**, **Vendor/Supplier Orders**, **Status Codes**, **Companies** and **Work Orders / Job Cards**. It also exposes topics related to authentication/grant types and API call limits. A navigation entry is **not** proof of a particular endpoint shape, permission, grant or JSON schema.
 
-**Not yet verified:** individual HTTP paths, job-number versus internal-ID lookup semantics, company scoping, response JSON shapes, authentication grant selection, token refresh behavior, pagination, filters, response codes, rate-limit headers and field-level permissions. The official documentation is dynamically presented and its navigational headings alone do not establish these details. Do not invent paths or commit unverified payload models as Simpro-native.
+A previous draft asserted availability of a Swagger/OpenAPI 2.0 file. Its precise official artifact URL and version were **not independently captured** for this repository; treat that claim as **unverified until the original specification is retrieved**. Do not assume that a machine-readable specification is publicly downloadable.
 
 ## Contract inventory
 
-| Capability | Public documentation discovery | Endpoint and schema | Initial priority |
-| --- | --- | --- | --- |
-| Job lookup | Jobs section listed | **Unverified** | P0 |
-| Customer/site | Customers and Sites sections listed | **Unverified** | P0 |
-| Schedule | Schedules section listed | **Unverified** | P1 |
-| Job materials | Jobs/Job Cost Centers and supplier order sections listed | **Unverified** | P1 |
-| Status | Status Codes section listed | **Unverified** | P1 |
-| Job cards | Work Orders / Job Cards section listed | **Unverified** | P2 |
+| Capability | Evidence presently documented | Still to verify |
+| --- | --- | --- |
+| Job lookup | Jobs resource listed | Company and job identifier semantics; GET path, schema and filtering |
+| Customer/site | Customers and Sites listed | Associations, privacy fields and permissions |
+| Scheduling | Schedules listed | Read routes, time zones and permissions |
+| Materials/order state | Job Cost Centers and Vendor/Supplier Orders listed | Meaning and source of shipped, received and installed states |
+| Status | Status Codes listed | Raw status representation and administrative closure mapping |
+| Job cards | Work Orders / Job Cards listed | Read access and evidence semantics |
+| Company scope | Companies listed | Scoping and identity rules |
+| Authentication and call limits | Documentation navigation topics listed | Grant types, scopes, expiration, error/retry and rate-limit details |
 
-Do not conflate supplier shipment, receipt, installation or verification. A status code in Simpro is not automatically an engineering repair result.
+**Unverified until primary evidence is available:** official request paths and parameters, authorization grants, company/build hostnames, ID conversion rules, response shapes, pagination, rate-limit values, error semantics and any provider-specific data retention/use restrictions.
 
-## Required research before live integration
+Webhooks and provider write/configuration operations are outside this read-only prototype's scope.
 
-1. Retrieve and review the **current official OpenAPI specification** and version/source provenance.
-2. Record precise permitted GET endpoints, path parameters, job identity semantics, pagination/filtering and response models.
-3. Verify OAuth grant model and least-privilege scopes with the ILS system administrator, without publishing tokens.
-4. Confirm rate limits and errors from official documentation. Implement bounded retries only for safe, retryable failures.
-5. Determine which fields may be processed externally under Simpro license and ILS policy, including AI-assisted access.
-6. Test an explicitly approved job against its Simpro UI; redact all demonstration artifacts.
+## Evidence required before coding a live adapter
 
-No API permission or production data access has been granted. The GitHub source repository is public.
+1. Retrieve the official specification and relevant authentication/limits reference pages; record URLs, access date, version and, when distributable, file hash.
+2. Identify precise permitted GET endpoints and company/identifier behavior. Keep native responses separate from normalized internal models.
+3. Check least-privilege authorization and company scoping with the ILS system owner. Do not put credentials, tokens or private contract excerpts in this public repo.
+4. Confirm paging, retryability and limits using official evidence, not assumptions from a sidebar or a mock.
+5. Have the appropriate owner review Simpro subscription/developer terms, customer confidentiality, external/AI processing, field allowlists, retention and recipient access.
+6. Only after written approval, validate against an authorized job privately with a redacted evidence trail.
 
-## Offline interface contract
+## Implemented internal contract (not Simpro API)
 
-PR #3 may implement an **internal mock contract**: `get_job(job_number)` yields a normalized `JobSummary` with provenance, or a typed NotFound/Ambiguous error. This mock contract is *not* a statement of Simpro-native API endpoints.
+The merged offline repository exposes:
 
-Recommended examples: `DEMO-1001`, fictional customer name and part identifiers. All fixtures must be synthetic.
+```python
+OfflineJobRepository(jobs).get_job(job_number, *, company_id=None)
+```
+
+It returns a normalized `JobSummary` with required provenance or raises `JobNotFoundError` / `AmbiguousJobError` for missing or nonunique records. Malformed input is rejected. Matching is exact, while normalized Unicode/case collisions fail closed on ingestion.
+
+`company_id` is a **provider-independent internal concept**; it does not assert a Simpro-native URL or query parameter. Use only synthetic `DEMO-*` fixtures in the public repository.
+
+See [Offline lookup](offline-lookup.md), [Architecture](architecture.md) and [Approval](approval.md).
