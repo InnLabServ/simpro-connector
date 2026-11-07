@@ -58,9 +58,8 @@ def test_invalid_input_records_fail_closed() -> None:
     invalid = sample_job().model_copy(update={"administrative_closed": "maybe"})
     # model_copy(update=...) intentionally bypasses validation. Pydantic warns
     # while serializing the invalid model before ingestion rejects it.
-    with pytest.warns(UserWarning, match="Pydantic serializer warnings"):
-        with pytest.raises(ValidationError):
-            OfflineJobRepository([invalid])
+    with pytest.warns(UserWarning, match="Pydantic serializer warnings"), pytest.raises(ValidationError):
+        OfflineJobRepository([invalid])
 
 
 def test_frozen_models_and_nested_collections() -> None:
