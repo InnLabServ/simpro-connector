@@ -8,7 +8,7 @@ Name, OrderNo or deprecated RequestNo. No networking or file access.
 from collections.abc import Mapping
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, Strict, StrictInt, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, Strict, StrictInt, field_validator
 
 from .models import JobSummary, Provenance, valid_identifier
 
