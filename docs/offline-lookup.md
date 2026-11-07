@@ -13,9 +13,9 @@ assert job.administrative_closed is None
 
 ## Behavior
 
-- Exact identifiers only; malformed, blank, padded or control-containing stored identities fail validation.
-- Unicode NFKC/casefold *collisions* across distinct textual IDs fail closed at ingestion. Matching remains exact and case-sensitive.
-- Lookup accepts optional keyword-only `company_id`. When multiple companies share an exact ID, an unscoped lookup is ambiguous.
+- Exact identifiers only; malformed, blank, padded or control-containing stored identities fail Pydantic validation. A malformed lookup query (for example, `" DEMO-1001"`) raises `ValueError`.
+- Unicode NFKC/casefold *collisions* across distinct textual IDs raise `AmbiguousJobError` at ingestion. Matching remains exact and case-sensitive.
+- Lookup accepts optional keyword-only `company_id`. When multiple companies share an exact ID, an unscoped lookup is ambiguous. A scoped lookup never matches a record with `company_id=None`; if no scoped record matches, it raises `JobNotFoundError`.
 - Missing identifiers raise `JobNotFoundError`; multiple exact matches raise `AmbiguousJobError`. Non-string input raises `TypeError`.
 - Source models are revalidated at ingestion to catch unsafe `model_construct` and `model_copy(update=...)` state.
 - Models are frozen, their nested collections use tuples, and returned records are separate deep copies.
