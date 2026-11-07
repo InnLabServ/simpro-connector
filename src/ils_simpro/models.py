@@ -3,8 +3,9 @@
 import unicodedata
 from datetime import datetime
 from enum import Enum
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, Strict, StrictBool, StrictInt, field_validator
 
 
 def valid_identifier(value: str) -> str:
@@ -28,14 +29,14 @@ class Provenance(BaseModel):
 
     system: str = Field(min_length=1)
     source_id: str = Field(min_length=1)
-    observed_at: datetime | None = None
+    observed_at: Annotated[AwareDatetime, Strict()] | None = None
 
 
 class PartSummary(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     part_number: str = Field(min_length=1)
-    quantity: int = Field(ge=1)
+    quantity: Annotated[StrictInt, Field(ge=1, le=1000000)]
     state: PartState = PartState.UNKNOWN
 
 
@@ -48,7 +49,7 @@ class JobSummary(BaseModel):
     site_name: str | None = None
     instrument: str | None = None
     operational_status: str | None = None
-    administrative_closed: bool | None = None
+    administrative_closed: StrictBool | None = None
     administrative_status_raw: str | None = None
     parts: tuple[PartSummary, ...] = ()
     provenance: tuple[Provenance, ...] = Field(min_length=1)

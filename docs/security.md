@@ -1,20 +1,23 @@
-# Security and data governance
+# Transport security and data governance
 
-## Public repository boundary
+This is an offline-first proof of concept, **not an authorized live integration**. Source code and synthetic fixtures are public. Production records, credentials, contact details, customer agreements and private operating instructions are not.
 
-Only synthetic examples may enter source control, CI artifacts and public issues. Do not commit real customer names, personal contact information, instrument serial numbers, job records, API responses, internal document links, emails, authorization codes, refresh tokens or screenshots. Never publish internal Mem/standing-order documents.
+## Controls implemented
 
-## Runtime controls
+- Live access is disabled by default, with a strict boolean guard and a nonempty immutable allowlist.
+- Requests use GET only; configured paths must be ASCII-safe and match the path sent.
+- HTTPS DNS names are validated using HTTPX URL semantics, excluding IP literals, local hosts, userinfo and nonstandard ports.
+- Non-mock network requests require a token and an explicitly approved exact hostname supplied by private runtime configuration.
+- Redirects and environment proxies are disabled.
+- Tokens cannot contain whitespace. Sanitized outward-facing errors have no request, Authorization header, URL or response payload.
+- Responses must be uncompressed JSON. Compression is rejected until bounded decompression is supported. Raw response streaming is capped at a configurable, provisional 5 MiB default; HTTPX's per-operation timeouts and a streaming deadline are used. This is not a full end-to-end deadline for stalled networking.
+- Non-finite JSON numbers and duplicate keys are rejected.
+- Administrative closure and quantity use strict types. Unknown and unverified states stay unknown.
 
-- Default network access is disabled by application policy.
-- Live transport requires explicit opt-in and an allowlisted path.
-- GET is the only implemented HTTP method; redirects are disabled.
-- Use least-privilege OAuth credentials after formal approval; do not put tokens in URLs, issues, logs or code.
-- Configure separate private deployment secrets and access logs. Avoid logging raw customer payloads.
-- Review token rotation, retention, revocation and exposure-response procedures before production use.
-- Do not enable live access solely by changing a public repository configuration.
-- Do not assume GET operations are free of effects server-side; production authorization is still required.
+Mock transports are a development/testing escape hatch, **not** proof of TLS, DNS or approved Simpro behavior. The HTTP client is still a Python object accessible to code in the same process; application-level guards cannot prevent malicious in-process code from constructing its own HTTP requests.
 
-## Deployment gate
+## Remaining approval gates
 
-No live Simpro access, internal data export, ChatGPT-connected exposure, production synchronization, or write operation without ILS authorization and review of provider terms, information security and intended recipients.
+ILS owner authorization; review of Simpro API subscription/developer agreements and customer confidentiality; AI-processing approval; official endpoint schema and company scoping; a production hostname allowlist; scoped credentials/rotation; retention and access controls; field-level minimization; auditable private deployment and an authorized live pilot. Never use real customer records in this repository.
+
+Do not claim that a GET-only interface itself grants access or satisfies authorization.
