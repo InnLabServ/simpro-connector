@@ -59,6 +59,7 @@ class JobSummary(BaseModel):
     operational_status: str | None = None
     administrative_closed: StrictBool | None = None
     administrative_status_raw: str | None = None
+    administrative_stage_raw: str | None = None
     parts: tuple[PartSummary, ...] = ()
     provenance: tuple[Provenance, ...] = Field(min_length=1)
     unresolved: tuple[str, ...] = ()
