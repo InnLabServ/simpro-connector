@@ -21,9 +21,10 @@ def _mock(response: httpx.Response, **kwargs: object) -> SimproClient:
         "https://example.invalid/api",
         live_enabled=True,
         allowed_paths=("/jobs/demo",),
+        approved_hosts=("example.invalid",),
         **kwargs,
     )
-    return SimproClient(config, transport=httpx.MockTransport(lambda _req: response))
+    return SimproClient(config, transport=httpx.MockTransport(lambda _req: response), token="CANARY-TOKEN")
 
 
 @pytest.mark.parametrize("value", ["false", "0", "False", 1, 0, None, [], object()])
@@ -77,8 +78,9 @@ def test_source_host_and_base_path_preserved() -> None:
         "https://example.invalid/api",
         live_enabled=True,
         allowed_paths=("/jobs/demo",),
+        approved_hosts=("example.invalid",),
     )
-    with SimproClient(config, transport=httpx.MockTransport(handler)) as client:
+    with SimproClient(config, transport=httpx.MockTransport(handler), token="CANARY-TOKEN") as client:
         assert client.get_json("/jobs/demo") == {"ok": True}
     assert seen[0].url.path == "/api/jobs/demo"
     assert seen[0].url.host == "example.invalid"
@@ -116,7 +118,7 @@ def test_http_exception_has_no_headers_or_response() -> None:
         json={"secret": "SENSITIVE-BODY"},
         headers={"Location": "https://example.invalid/?private=1"},
     )
-    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
+    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",))
     with SimproClient(config, transport=httpx.MockTransport(lambda _req: response), token="SECRET-TOKEN") as client, pytest.raises(SimproHTTPError) as raised:
         client.get_json("/jobs/demo")
     error = raised.value
@@ -131,29 +133,94 @@ def test_http_exception_has_no_headers_or_response() -> None:
 def test_transport_failure_sanitized() -> None:
     def fail(_request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("sensitive-url-or-token")
-    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
+    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",))
     with SimproClient(config, transport=httpx.MockTransport(fail), token="SECRET-TOKEN") as client, pytest.raises(SimproTransportError) as raised:
         client.get_json("/jobs/demo")
     assert raised.value.__context__ is None
 
 
 def test_no_live_network_without_approved_host_and_token() -> None:
-    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
-    with SimproClient(config) as client, pytest.raises(LiveAccessDisabled):
+    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",))
+    with SimproClient(SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))) as client, pytest.raises(LiveAccessDisabled):
         client.get_json("/jobs/demo")
 
 
 def test_nonstring_path_fails_closed() -> None:
-    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
-    with SimproClient(config, transport=httpx.MockTransport(lambda _r: pytest.fail("network"))) as client, pytest.raises(EndpointNotAllowed):
+    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",))
+    with SimproClient(config, transport=httpx.MockTransport(lambda _r: pytest.fail("network")), token="CANARY-TOKEN") as client, pytest.raises(EndpointNotAllowed):
         client.get_json(123)
 
 
 def test_arbitrary_transport_cannot_bypass_host_gate() -> None:
-    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
+    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",))
     transport = httpx.HTTPTransport(verify=False)
     try:
         with pytest.raises(TypeError):
             SimproClient(config, transport=transport)
     finally:
         transport.close()
+
+
+@pytest.mark.parametrize("invalid", ["é", "\\x00", "\\x7f", "\\r"])
+def test_invalid_token_rejected_at_construction(invalid: str) -> None:
+    with pytest.raises(ValueError):
+        SimproClient(
+            SimproConfig("https://example.invalid"),
+            token="CANARY-TOKEN" + invalid,
+        )
+
+
+@pytest.mark.parametrize("payload", [b'{"value":1e400}', b'{"value":-1e400}'])
+def test_overflow_number_is_rejected(payload: bytes) -> None:
+    response = httpx.Response(
+        200, content=payload, headers={"Content-Type": "application/json"}
+    )
+    with _mock(response) as client, pytest.raises(SimproResponseError):
+        client.get_json("/jobs/demo")
+
+
+@pytest.mark.parametrize("status", [201, 203, 206, 299])
+def test_non_200_status_is_rejected(status: int) -> None:
+    with _mock(httpx.Response(status, json={"closed": True})) as client:
+        with pytest.raises(SimproHTTPError) as error:
+            client.get_json("/jobs/demo")
+    assert error.value.status_code == status
+
+
+def test_mock_does_not_bypass_host_and_token_guards() -> None:
+    called = []
+    handler = httpx.MockTransport(lambda request: (called.append(request), httpx.Response(200, json={}))[1])
+    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
+    with SimproClient(config, transport=handler, token="CANARY-TOKEN") as client, pytest.raises(LiveAccessDisabled):
+        client.get_json("/jobs/demo")
+    config = SimproConfig(
+        "https://example.invalid", live_enabled=True,
+        allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",),
+    )
+    with SimproClient(config, transport=handler) as client, pytest.raises(LiveAccessDisabled):
+        client.get_json("/jobs/demo")
+    assert called == []
+
+
+def test_error_traceback_locals_contain_no_canaries() -> None:
+    response = httpx.Response(
+        401, json={"secret": "CANARY-BODY"},
+        headers={"Content-Type": "application/json"},
+    )
+    with _mock(response) as client, pytest.raises(SimproHTTPError) as caught:
+        client.get_json("/jobs/demo")
+    cursor = caught.value.__traceback__
+    while cursor is not None:
+        for value in cursor.tb_frame.f_locals.values():
+            assert "CANARY-TOKEN" not in repr(value)
+            assert "CANARY-BODY" not in repr(value)
+        cursor = cursor.tb_next
+
+
+def test_unconsumed_stream_respects_byte_limit() -> None:
+    stream = httpx.ByteStream(b" " * 65)
+    response = httpx.Response(
+        200, stream=stream, headers={"Content-Type": "application/json"}
+    )
+    with _mock(response, max_response_bytes=64) as client, pytest.raises(SimproResponseError):
+        client.get_json("/jobs/demo")

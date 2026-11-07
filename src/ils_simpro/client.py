@@ -2,6 +2,7 @@
 
 import ipaddress
 import json
+import math
 import re
 import time
 from dataclasses import dataclass
@@ -55,7 +56,7 @@ def _safe_path(value: str) -> bool:
 def _safe_host(host: str) -> bool:
     if not host or not host.isascii() or host == "localhost":
         return False
-    if host.endswith((".local", ".internal", ".localhost")):
+    if host.endswith((".local", ".internal", ".localhost")) or re.fullmatch(r"(?:0x[0-9a-f]+|[0-9]+)", host.rsplit(".", 1)[-1]):
         return False
     try:
         ipaddress.ip_address(host)
@@ -118,14 +119,13 @@ class SimproClient:
         if type(config) is not SimproConfig:
             raise TypeError("config must be SimproConfig")
         if token is not None and (
-            type(token) is not str or not token or any(c.isspace() for c in token)
+            type(token) is not str or re.fullmatch(r"[\x21-\x7e]+", token) is None
         ):
             raise ValueError("Invalid token")
         if transport is not None and type(transport) is not httpx.MockTransport:
             raise TypeError("Only an HTTPX MockTransport is accepted for tests")
         self._config = config
         self._token = token
-        self._test_transport = type(transport) is httpx.MockTransport
         self._base = httpx.URL(config.base_url)
         self._http = httpx.Client(
             base_url=config.base_url,
@@ -140,81 +140,80 @@ class SimproClient:
         return self._config
 
     def get_json(self, path: str) -> object:
-        """Fetch allowlisted JSON without attaching raw HTTP objects to exceptions."""
+        """Validate and raise sanitized failures without secret-bearing frame locals."""
         if not self._config.live_enabled:
             raise LiveAccessDisabled("Live access disabled")
         if type(path) is not str or path not in self._config.allowed_paths or not _safe_path(path):
             raise EndpointNotAllowed("Endpoint not allowlisted")
-        if not self._test_transport and (
-            not self._token or self._base.host not in self._config.approved_hosts
-        ):
+        if not self._token or self._base.host not in self._config.approved_hosts:
             raise LiveAccessDisabled("Authorized hostname and credential required")
-        headers = {"Accept": "application/json", "Accept-Encoding": "identity"}
-        if self._token:
-            headers["Authorization"] = f"Bearer {self._token}"
-        request = self._http.build_request("GET", path, headers=headers)
-        expected = self._base.path.rstrip("/") + path
-        if (
-            request.url.host != self._base.host
-            or request.url.scheme != "https"
-            or request.url.path != expected
-            or request.url.query
-        ):
+
+        outcome, value = self._perform_request(path)
+        if outcome == "destination":
             raise EndpointNotAllowed("Endpoint normalized to unexpected destination")
-        status: int | None = None
-        response_error = False
-        transport_error = False
-        body = bytearray()
-        started = time.monotonic()
+        if outcome == "transport":
+            raise SimproTransportError("Request could not be completed")
+        if outcome == "status":
+            raise SimproHTTPError(value)
+        if outcome == "response":
+            raise SimproResponseError("JSON response rejected")
+        if outcome == "json":
+            raise SimproResponseError("Invalid JSON response")
+        return value
+
+    def _perform_request(self, path: str) -> tuple[str, object]:
+        """Contain sensitive HTTP objects and return only safe outcome codes."""
+        headers = {"Accept": "application/json", "Accept-Encoding": "identity"}
+        headers["Authorization"] = f"Bearer {self._token}"
         try:
-            with self._http.stream("GET", path, headers=headers) as response:
+            request = self._http.build_request("GET", path, headers=headers)
+            expected = self._base.path.rstrip("/") + path
+            if (
+                request.url.host != self._base.host
+                or request.url.scheme != "https"
+                or request.url.path != expected
+                or request.url.query
+            ):
+                return ("destination", None)
+            body = bytearray()
+            started = time.monotonic()
+            with self._http.send(request, stream=True) as response:
                 status = response.status_code
-                if not 200 <= status < 300:
-                    pass
-                elif (
-                    status == 204
-                    or response.headers.get("content-type", "").split(";")[0].strip().lower()
+                if status != 200:
+                    return ("status", status)
+                if (
+                    response.headers.get("content-type", "").split(";")[0].strip().lower()
                     != "application/json"
                     or response.headers.get("content-encoding", "identity").lower()
                     not in ("", "identity")
                 ):
-                    response_error = True
-                else:
-                    # Reject compressed bodies. Their expansion would bypass a raw-byte cap.
-                    # Some mock transports supply a pre-consumed response.
-                    chunks = (
-                        (response.content,)
-                        if response.is_stream_consumed
-                        else response.iter_raw(chunk_size=8192)
-                    )
-                    for chunk in chunks:
-                        if time.monotonic() - started > 20 or len(body) + len(chunk) > self._config.max_response_bytes:
-                            response_error = True
-                            break
-                        body.extend(chunk)
-        except Exception:  # noqa: BLE001 - sanitize all transport exceptions
-            # Deliberately raise only after leaving the handler. Underlying httpx
-            # exceptions retain request auth headers and potentially response data.
-            transport_error = True
-        if transport_error:
-            raise SimproTransportError("Request could not be completed")
-        if status is not None and not 200 <= status < 300:
-            raise SimproHTTPError(status)
-        if response_error:
-            raise SimproResponseError("JSON response rejected")
-        invalid = False
-        result: object = None
-        try:
-            result = json.loads(
-                body.decode("utf-8"),
-                parse_constant=_reject_constant,
-                object_pairs_hook=_reject_duplicate_keys,
-            )
-        except (ValueError, UnicodeError, RecursionError):
-            invalid = True
-        if invalid:
-            raise SimproResponseError("Invalid JSON response")
-        return result
+                    return ("response", None)
+                chunks = (
+                    (response.content,)
+                    if response.is_stream_consumed
+                    else response.iter_raw()
+                )
+                for chunk in chunks:
+                    if (
+                        time.monotonic() - started > 20
+                        or len(body) + len(chunk) > self._config.max_response_bytes
+                    ):
+                        return ("response", None)
+                    body.extend(chunk)
+            try:
+                return (
+                    "ok",
+                    json.loads(
+                        body.decode("utf-8"),
+                        parse_constant=_reject_constant,
+                        parse_float=_finite_float,
+                        object_pairs_hook=_reject_duplicate_keys,
+                    ),
+                )
+            except (ValueError, UnicodeError, RecursionError):
+                return ("json", None)
+        except Exception:  # noqa: BLE001 - fail closed without leaking HTTP exception context
+            return ("transport", None)
 
     def close(self) -> None:
         self._http.close()
@@ -236,4 +235,11 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
         if key in result:
             raise ValueError("Duplicate JSON key")
         result[key] = value
+    return result
+
+
+def _finite_float(value: str) -> float:
+    result = float(value)
+    if not math.isfinite(result):
+        raise ValueError("Non-finite JSON number")
     return result

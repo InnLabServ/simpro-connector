@@ -6,15 +6,15 @@ This is an offline-first proof of concept, **not an authorized live integration*
 
 - Live access is disabled by default, with a strict boolean guard and a nonempty immutable allowlist.
 - Requests use GET only; configured paths must be ASCII-safe and match the path sent.
-- HTTPS DNS names are validated using HTTPX URL semantics, excluding IP literals, local hosts, userinfo and nonstandard ports.
-- Non-mock network requests require a token and an explicitly approved exact hostname supplied by private runtime configuration.
+- HTTPS DNS names are validated using HTTPX URL semantics, excluding canonical IP literals, numeric/hex host forms, local hosts, userinfo and nonstandard ports.
+- All requests, including mocked transports, require a token and an explicitly approved exact hostname supplied by private runtime configuration.
 - Redirects and environment proxies are disabled.
-- Tokens cannot contain whitespace. Sanitized outward-facing errors have no request, Authorization header, URL or response payload.
-- Responses must be uncompressed JSON. Compression is rejected until bounded decompression is supported. Raw response streaming is capped at a configurable, provisional 5 MiB default; HTTPX's per-operation timeouts and a streaming deadline are used. This is not a full end-to-end deadline for stalled networking.
+- Tokens must be printable ASCII. Sanitized outward-facing errors contain no raw HTTP objects, URLs, credentials or response bodies in their traceback frame locals; underlying in-process transport state cannot be made inaccessible to malicious code.
+- Responses must be uncompressed JSON. Compression is rejected until bounded decompression is supported. Raw response streaming is capped at a configurable, provisional 5 MiB default; HTTPX's per-operation timeouts and a best-effort per-chunk streaming time check are used. This is not a full end-to-end deadline; a stalled read may exceed the check.
 - Non-finite JSON numbers and duplicate keys are rejected.
 - Administrative closure and quantity use strict types. Unknown and unverified states stay unknown.
 
-Mock transports are a development/testing escape hatch, **not** proof of TLS, DNS or approved Simpro behavior. The HTTP client is still a Python object accessible to code in the same process; application-level guards cannot prevent malicious in-process code from constructing its own HTTP requests.
+Mock transports are for development/testing, and follow the same authorization gates. They are **not** proof of TLS, DNS or approved Simpro behavior. The HTTP client is still a Python object accessible to code in the same process; application-level guards cannot prevent malicious in-process code from constructing its own HTTP requests.
 
 ## Remaining approval gates
 
