@@ -147,3 +147,13 @@ def test_nonstring_path_fails_closed() -> None:
     config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
     with SimproClient(config, transport=httpx.MockTransport(lambda _r: pytest.fail("network"))) as client, pytest.raises(EndpointNotAllowed):
         client.get_json(123)
+
+
+def test_arbitrary_transport_cannot_bypass_host_gate() -> None:
+    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))
+    transport = httpx.HTTPTransport(verify=False)
+    try:
+        with pytest.raises(TypeError):
+            SimproClient(config, transport=transport)
+    finally:
+        transport.close()

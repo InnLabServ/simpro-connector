@@ -121,9 +121,11 @@ class SimproClient:
             type(token) is not str or not token or any(c.isspace() for c in token)
         ):
             raise ValueError("Invalid token")
+        if transport is not None and type(transport) is not httpx.MockTransport:
+            raise TypeError("Only an HTTPX MockTransport is accepted for tests")
         self._config = config
         self._token = token
-        self._test_transport = transport is not None
+        self._test_transport = type(transport) is httpx.MockTransport
         self._base = httpx.URL(config.base_url)
         self._http = httpx.Client(
             base_url=config.base_url,
