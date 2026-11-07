@@ -10,7 +10,7 @@ This is an offline-first proof of concept, **not an authorized live integration*
 - All requests, including mocked transports, require a token and an explicitly approved exact hostname supplied by private runtime configuration.
 - Redirects and environment proxies are disabled.
 - Tokens must be printable ASCII. Sanitized outward-facing errors contain no raw HTTP objects, URLs, credentials or response bodies in their traceback frame locals; underlying in-process transport state cannot be made inaccessible to malicious code.
-- Responses must be uncompressed JSON. Compression is rejected until bounded decompression is supported. Raw response streaming is capped at a configurable, provisional 5 MiB default; HTTPX's per-operation timeouts and a best-effort per-chunk streaming time check are used. This is not a full end-to-end deadline; a stalled read may exceed the check.
+- Responses must be uncompressed JSON. Compression is rejected until bounded decompression is supported. Raw response streaming is capped at a configurable, provisional 5 MiB default; HTTPX's per-operation timeouts and a best-effort per-chunk streaming time check are used. The time check applies only while reading the response body. Connection, TLS and header phases are bounded by per-operation timeouts rather than an overall deadline. A stalled read may exceed the body check; there is no guaranteed end-to-end deadline.
 - Non-finite JSON numbers and duplicate keys are rejected.
 - Administrative closure and quantity use strict types. Unknown and unverified states stay unknown.
 

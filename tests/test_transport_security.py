@@ -222,3 +222,52 @@ def test_unconsumed_stream_respects_byte_limit() -> None:
     )
     with _mock(response, max_response_bytes=64) as client, pytest.raises(SimproResponseError):
         client.get_json("/jobs/demo")
+
+
+def test_mutated_live_flag_still_fails_closed() -> None:
+    config = SimproConfig(
+        "https://example.invalid", live_enabled=True,
+        allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",),
+    )
+    object.__setattr__(config, "live_enabled", "false")
+    with (
+        SimproClient(
+            config, token="CANARY-TOKEN",
+            transport=httpx.MockTransport(lambda _request: pytest.fail("network called")),
+        ) as client,
+        pytest.raises(LiveAccessDisabled),
+    ):
+        client.get_json("/jobs/demo")
+
+
+def test_unknown_transport_outcome_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = SimproConfig(
+        "https://example.invalid", live_enabled=True,
+        allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",),
+    )
+    monkeypatch.setattr(SimproClient, "_perform_request", lambda _self, _path: ("unexpected", {"closed": True}))
+    from ils_simpro.client import SimproError
+
+    with SimproClient(config, token="CANARY-TOKEN") as client, pytest.raises(SimproError):
+        client.get_json("/jobs/demo")
+
+
+def test_unexpected_programming_error_is_not_disguised(monkeypatch: pytest.MonkeyPatch) -> None:
+    import ils_simpro.client as client_module
+
+    config = SimproConfig(
+        "https://example.invalid", live_enabled=True,
+        allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",),
+    )
+    def bug() -> float:
+        raise TypeError("internal bug")
+
+    monkeypatch.setattr(client_module.time, "monotonic", bug)
+    with (
+        SimproClient(
+            config, token="CANARY-TOKEN",
+            transport=httpx.MockTransport(lambda _req: httpx.Response(200, json={"ok": True})),
+        ) as client,
+        pytest.raises(TypeError, match="internal bug"),
+    ):
+        client.get_json("/jobs/demo")

@@ -142,7 +142,7 @@ class SimproClient:
 
     def get_json(self, path: str) -> object:
         """Validate and raise sanitized failures without secret-bearing frame locals."""
-        if not self._config.live_enabled:
+        if self._config.live_enabled is not True:
             raise LiveAccessDisabled("Live access disabled")
         if type(path) is not str or path not in self._config.allowed_paths or not _safe_path(path):
             raise EndpointNotAllowed("Endpoint not allowlisted")
@@ -160,7 +160,9 @@ class SimproClient:
             raise SimproResponseError("JSON response rejected")
         if outcome == "json":
             raise SimproResponseError("Invalid JSON response")
-        return value
+        if outcome == "ok":
+            return value
+        raise SimproError("Unexpected transport outcome")
 
     def _perform_request(self, path: str) -> tuple[str, object]:
         """Contain sensitive HTTP objects and return only safe outcome codes."""
@@ -213,7 +215,7 @@ class SimproClient:
                 )
             except (ValueError, UnicodeError, RecursionError):
                 return ("json", None)
-        except Exception:  # noqa: BLE001 - fail closed without leaking HTTP exception context
+        except (httpx.HTTPError, OSError):
             return ("transport", None)
 
     def close(self) -> None:
