@@ -1,44 +1,22 @@
 # Simpro Connector
 
-A small, **read-only by design** Python foundation for integrating authorized Simpro job data with engineering workflows.
+A public, offline-first Python framework for future, **authorized read-only** Simpro job integration.
 
-> **Status:** Offline prototype. No organization access, credentials, production data, or Simpro connectivity are included or implied. Deployment and live API access require independent authorization and review of applicable Simpro API terms.
+This is **not** a live Simpro connector. No internal records, real credentials, API endpoints, production data, private links or operational access are included.
 
-## Scope
-
-- Typed, source-aware summaries of jobs and their related records.
-- GET-only HTTP transport with restrictive endpoint allowlisting.
-- Deterministic mock responses and tests without external access.
-- An adapter boundary for later Google Drive reconciliation; **no Drive writes are implemented**.
-- Conservative error handling and data minimization.
-
-This library does **not** alter jobs, close work orders, update billing, deliver FSRs, or access customer data until explicitly configured and authorized. A warehouse shipping confirmation is not proof that a replacement part was received or installed.
-
-## Try the offline example
+## Development
 
 ```bash
 python -m pip install -e '.[dev]'
 python examples/offline_lookup.py
-pytest
+pytest -q
+ruff check .
 ```
 
-The fixture uses invented company names and identifiers. No Simpro token is required.
+The offline example uses synthetic `DEMO-*` records and does not connect to Simpro.
 
-## API usage
+The transport explicitly requires strict enablement, a fixed endpoint allowlist and, for all requests, an explicitly approved hostname plus credential. It rejects compressed/oversized/malformed responses and does not expose raw HTTP objects through its documented exceptions. This is an application safety control, **not authorization** to access any organization's Simpro instance.
 
-```python
-from ils_simpro import SimproClient, SimproConfig
+Documentation: [API discovery](docs/simpro-api-contract.md), [offline lookup](docs/offline-lookup.md), [security](docs/security.md), [approval checklist](docs/approval.md).
 
-# Live access is deliberately disabled by default.
-config = SimproConfig(base_url="https://example.invalid", live_enabled=False)
-# Client construction does not authorize network operations.
-client = SimproClient(config=config)
-```
-
-The actual Simpro API's endpoint paths, pagination, account/company scoping and OAuth flow must be confirmed against the current official documentation and an authorized test account before enabling production calls. Do not treat the generic normalized schema as a claim about Simpro's native JSON structure.
-
-See [architecture](docs/architecture.md), [security](docs/security.md) and [approval checklist](docs/approval.md).
-
-## License
-
-MIT. Simpro is a trademark of its respective owner; this project is not affiliated with or endorsed by Simpro.
+MIT licensed. Not affiliated with or endorsed by Simpro.

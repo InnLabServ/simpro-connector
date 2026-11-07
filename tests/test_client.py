@@ -41,9 +41,9 @@ def test_explicit_get_with_mock_transport() -> None:
         return httpx.Response(200, json={"id": "DEMO-1001"})
 
     config = SimproConfig(
-        "https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",)
+        "https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",)
     )
-    with SimproClient(config, transport=httpx.MockTransport(handler)) as client:
+    with SimproClient(config, transport=httpx.MockTransport(handler), token="CANARY-TOKEN") as client:
         assert client.get_json("/jobs/demo") == {"id": "DEMO-1001"}
     assert len(seen) == 1
     assert seen[0].method == "GET"
