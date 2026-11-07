@@ -1,7 +1,7 @@
 """Deterministic, provider-independent offline job lookup for synthetic fixtures."""
 
-from collections.abc import Iterable
 import unicodedata
+from collections.abc import Iterable
 
 from .models import JobSummary, valid_identifier
 

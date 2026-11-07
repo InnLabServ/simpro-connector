@@ -1,6 +1,5 @@
 """Synthetic job lookup validates source identities and never invokes networking."""
 
-from dataclasses import FrozenInstanceError
 import socket
 
 import pytest

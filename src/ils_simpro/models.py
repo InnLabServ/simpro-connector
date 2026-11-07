@@ -1,8 +1,8 @@
 """Normalized models independent of any provider-specific response schema."""
 
+import unicodedata
 from datetime import datetime
 from enum import Enum
-import unicodedata
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
