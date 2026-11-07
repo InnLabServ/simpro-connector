@@ -5,6 +5,7 @@ import json
 import math
 import re
 import time
+from contextlib import closing
 from dataclasses import dataclass
 from typing import Self
 
@@ -177,7 +178,7 @@ class SimproClient:
                 return ("destination", None)
             body = bytearray()
             started = time.monotonic()
-            with self._http.send(request, stream=True) as response:
+            with closing(self._http.send(request, stream=True)) as response:
                 status = response.status_code
                 if status != 200:
                     return ("status", status)
