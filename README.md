@@ -18,16 +18,18 @@ This is a public, MIT-licensed prototype, not an official Simpro product or an a
 
 ## Quick start (offline)
 
-Requires Python **3.11+**.
+Requires Python **3.11+**. From the repository root, create and activate a virtual environment first (avoids externally managed system-Python installations):
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
 python -m pip install -e '.[dev]'
 python examples/offline_lookup.py
 pytest -q
 ruff check .
 ```
 
-The example is deterministic and uses fictional `DEMO-*` records. The package has no dependency on a Simpro account for this workflow.
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead of the `source` command. The example is deterministic and uses fictional `DEMO-*` records. The package has no dependency on a Simpro account for this workflow.
 
 ### Minimal lookup
 
@@ -44,6 +46,8 @@ try:
 except JobNotFoundError:
     print("No exact match")
 ```
+
+`administrative_closed=None` means the source did **not establish** whether the job is closed; it does not mean `False` (open).
 
 Lookup is exact and case-sensitive; malformed identifiers and Unicode-normalized collisions are handled explicitly. A `company_id` keyword can disambiguate records, but its existence in this normalized model does **not** establish the structure of Simpro's API. Details: [Offline lookup](docs/offline-lookup.md).
 
