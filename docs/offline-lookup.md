@@ -1,6 +1,6 @@
 # Offline job lookup contract
 
-`OfflineJobRepository` stores revalidated, immutable synthetic normalized `JobSummary` records and performs no network access. The records are not native Simpro responses.
+`OfflineJobRepository` stores revalidated, immutable normalized `JobSummary` records and performs no network access. The supplied example records are fictional; these are **not** native Simpro API responses.
 
 ```python
 from ils_simpro.fixtures import sample_job
@@ -22,4 +22,6 @@ assert job.administrative_closed is None
 - Every normalized job must include at least one provenance record.
 - Unknown values remain unknown. No Simpro-native paths, schemas, API calls or live access are implemented.
 
-This scope concept is not an assertion about Simpro's native company-specific routes.
+The optional company-scoping concept is internal and **does not** establish Simpro's native routing behavior.
+
+See [Architecture](architecture.md) and [API discovery](simpro-api-contract.md).
