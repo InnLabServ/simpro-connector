@@ -140,7 +140,6 @@ def test_transport_failure_sanitized() -> None:
 
 
 def test_no_live_network_without_approved_host_and_token() -> None:
-    config = SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",), approved_hosts=("example.invalid",))
     with SimproClient(SimproConfig("https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",))) as client, pytest.raises(LiveAccessDisabled):
         client.get_json("/jobs/demo")
 
@@ -161,7 +160,7 @@ def test_arbitrary_transport_cannot_bypass_host_gate() -> None:
         transport.close()
 
 
-@pytest.mark.parametrize("invalid", ["é", "\\x00", "\\x7f", "\\r"])
+@pytest.mark.parametrize("invalid", ["é", chr(0), chr(127), chr(13)])
 def test_invalid_token_rejected_at_construction(invalid: str) -> None:
     with pytest.raises(ValueError):
         SimproClient(
@@ -181,9 +180,8 @@ def test_overflow_number_is_rejected(payload: bytes) -> None:
 
 @pytest.mark.parametrize("status", [201, 203, 206, 299])
 def test_non_200_status_is_rejected(status: int) -> None:
-    with _mock(httpx.Response(status, json={"closed": True})) as client:
-        with pytest.raises(SimproHTTPError) as error:
-            client.get_json("/jobs/demo")
+    with _mock(httpx.Response(status, json={"closed": True})) as client, pytest.raises(SimproHTTPError) as error:
+        client.get_json("/jobs/demo")
     assert error.value.status_code == status
 
 
