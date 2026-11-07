@@ -23,7 +23,8 @@
 - [ ] Confirm least-privilege read-only credentials, private storage, rotation and revocation.
 - [ ] Implement a **true end-to-end request deadline** including connection, TLS, headers and body, and test slow/trickling responses. Existing checks do not provide one.
 - [ ] Verify exact allowed request paths and approved hostnames against actual authorized deployment requirements.
-- [ ] Define private access controls, field minimization, audit trails and error reporting that does not capture secrets or raw customer data.
+- [ ] Require a private deployment with access controls, field minimization, audit trails and error reporting that does not capture secrets or raw customer data.
+- [ ] Define credential-exposure response, including detection, escalation, immediate revocation, cleanup and approved incident reporting.
 - [ ] Specify retention, rollback/disconnect and a bounded pilot scope.
 
 ## 4. Pilot acceptance and evidence
