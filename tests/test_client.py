@@ -12,21 +12,25 @@ from ils_simpro.client import (
 
 
 def test_live_access_disabled_even_with_token() -> None:
-    with SimproClient(
-        SimproConfig("https://example.invalid", allowed_paths=("/jobs/demo",)),
-        token="never-real",
-    ) as client:
-        with pytest.raises(LiveAccessDisabled):
-            client.get_json("/jobs/demo")
+    with (
+        SimproClient(
+            SimproConfig("https://example.invalid", allowed_paths=("/jobs/demo",)),
+            token="never-real",
+        ) as client,
+        pytest.raises(LiveAccessDisabled),
+    ):
+        client.get_json("/jobs/demo")
 
 
 def test_unlisted_path_rejected_before_network() -> None:
     config = SimproConfig(
         "https://example.invalid", live_enabled=True, allowed_paths=("/jobs/demo",)
     )
-    with SimproClient(config, transport=httpx.MockTransport(lambda _: pytest.fail("network"))) as client:
-        with pytest.raises(EndpointNotAllowed):
-            client.get_json("/jobs/other")
+    with (
+        SimproClient(config, transport=httpx.MockTransport(lambda _: pytest.fail("network"))) as client,
+        pytest.raises(EndpointNotAllowed),
+    ):
+        client.get_json("/jobs/other")
 
 
 def test_explicit_get_with_mock_transport() -> None:

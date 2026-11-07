@@ -1,7 +1,7 @@
 """Preserve unknowns and distinguish shipping from installation."""
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 
 from ils_simpro.fixtures import sample_job
 from ils_simpro.models import JobSummary, PartState

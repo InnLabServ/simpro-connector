@@ -1,6 +1,7 @@
 """Strict GET-only transport; no provider-specific endpoints are presumed."""
 
 from dataclasses import dataclass
+from typing import Self
 from urllib.parse import urlparse
 
 import httpx
@@ -64,7 +65,7 @@ class SimproClient:
     def close(self) -> None:
         self._http.close()
 
-    def __enter__(self) -> "SimproClient":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_: object) -> None:
