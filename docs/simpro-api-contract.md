@@ -1,6 +1,6 @@
 # Simpro API contract research: official public evidence
 
-**Research date:** 2026-11-07. **Status:** publicly documented GET contract reconnaissance only. No account/build access, token acquisition, production request or private deployment schema validation was performed. A user-supplied Swagger archive has since been inspected and its origin attested by the downloader. This is not an authorization to access Simpro.
+**Research date:** 2026-11-07. **Status:** publicly documented GET contract reconnaissance only. No account/build access, token acquisition, production request or private deployment schema validation was performed. A user-supplied Swagger archive has since been inspected locally by the project maintainer (not by the independent reviewer), and its origin attested by the downloader. This is not an authorization to access Simpro.
 
 ## Primary Simpro sources
 
@@ -12,22 +12,26 @@
 
 **Evidence caveat:** The API documentation's direct public HTML retrieval sometimes exposes only navigation; search-indexed text from the linked official Simpro pages supplies the endpoint and field details below. The machine-readable specification was supplied by a user who confirms downloading it directly from the official Simpro Developer Center. Its exact download URL, publisher release date, current revision and compatibility with the ILS build have **not** been independently validated. Do not represent indexed page excerpts as a captured, version-pinned OpenAPI contract. No copied provider contract or payload has been committed.
 
-## Confirmed in official published resource documentation
+## Reported API behavior and evidence classification
 
-| Topic | Publicly documented behavior | Implementation caution |
-| --- | --- | --- |
-| Job list | `GET /api/v1.0/companies/{companyID}/jobs/` | Company ID is a required integer path parameter. A list is not an exact job-number lookup. |
-| Specific job | `GET /api/v1.0/companies/{companyID}/jobs/{jobID}` | `jobID` is a required integer. The relationship to ILS's displayed `JN####` identifier must be verified, not guessed. |
-| Job list response | JSON array; documented fields include integer `ID`, `Description`, `Total`. | `Description` is documented as supporting HTML; treat as untrusted text and do not display unsanitized HTML. |
-| Job detail response | JSON object with integer `ID`, `Type`, `Customer`, `Site`, `Name`, `Description`, `Stage`, `Status`, `CompletedDate`, `DateModified` and more. | Nested field definitions and optional/null states must be mapped from a versioned primary contract before implementation. |
-| Job detail errors | Documentation explicitly lists HTTP 200 and 404 for retrieval. | Other HTTP errors, retry rules and error-body structure remain unverified. |
-| Company scope | Official advanced-usage example uses `/api/v1.0/companies/0` for single-company builds; `GET /api/v1.0/info/` exposes `MultiCompany`, and `GET /api/v1.0/companies/` lists company IDs. | Do not hardcode company 0 or discover/query a private build without approval. |
-| Pagination | List default `pageSize=30`, documented maximum 250; `page` starts at 1. `Result-Total`, `Result-Pages`, `Result-Count` response headers are documented. | Implement a bounded, exact-scoped paginator in a later, separately reviewed change. |
-| List options | Docs name `search`, `columns`, `pageSize`, `page`, `orderby`, `limit`. | Exact allowed filters, especially displayed number equality, have not been proven for a specific deployed build. |
-| Authentication | Official page describes OAuth2 authorization-code, resource-owner-password, implicit, client-credentials and API-key workflows; bearer authorization header is shown. | These are documented options, **not** approval for any grant. Official page says OAuth `scope` parameter is not used; least privilege must therefore be confirmed from user/application permissions and owner governance, not an imagined OAuth scope. |
-| Other read resources | The official navigation lists Customers, Sites, Schedules, Job Cost Centers, Vendor/Supplier Orders, Status Codes and Work Orders/Job Cards. | Specific subresource schemas/paths and rights still need dedicated evidence. |
+Evidence codes: **S** = locally inspected, user-supplied Swagger (official download attested by downloader, not independently version-pinned); **I** = indexed excerpt attributed to official Simpro documentation (not independently recaptured by reviewer); **N** = accessible official navigation or Code Examples page. A code identifies the evidence source, **not** verification against ILS's deployed build.
 
-Official job details document `Stage` values including `Pending`, `Progress`, `Complete`, `Invoiced`, `Archived`, plus `Status` and `CompletedDate`. Those are administrative provider fields; none alone establishes field repair completion, FSR delivery, shipping receipt or installed parts. `RequestNo` is documented as deprecated and referring to job name; `Name` and `OrderNo` are also documented fields. **Do not assert that any is ILS's job number without an authorized identity cross-check.**
+| Topic | Reported behavior | Evidence | Implementation caution |
+| --- | --- | --- | --- |
+| Job list | `GET /api/v1.0/companies/{companyID}/jobs/` | S, I | Company ID is a required integer path parameter. A list is not an exact job-number lookup. |
+| Specific job | `GET /api/v1.0/companies/{companyID}/jobs/{jobID}` | S, I | `jobID` is a required integer. The relationship to ILS's displayed `JN####` identifier must be verified, not guessed. |
+| Job list response | JSON array; `ID`, `Description`, `Total` in the documented default projection | S (fields), I (HTML support) | Indexed excerpts report that `Description` may contain HTML. Treat it as untrusted text; do not display unsanitized HTML. |
+| Job detail response | JSON object including `ID`, `Type`, `Customer`, `Site`, `Name`, `Description`, `Stage`, `Status`, `CompletedDate`, `DateModified` | S, I | Preserve distinct raw fields and nulls; build-specific availability remains unverified. |
+| Job detail errors | HTTP 200 and 404 documented for GET detail | S, I | Other HTTP errors, retry rules and error-body structure remain unverified. |
+| Company scope | Single-company company-ID `0` convention; `GET /api/v1.0/info/` with `MultiCompany`; `GET /api/v1.0/companies/` | S (company-ID parameter description), I (routes and field) | Do not hardcode company 0 or perform private discovery without approval. |
+| Pagination | `pageSize` default 30, max 250; `page` default 1; `Result-Total`, `Result-Pages`, `Result-Count` headers reported | S (defaults and limits), I (headers and one-based numbering) | A default of 1 alone does not establish one-based numbering. Implement bounded, complete traversal only when separately reviewed. |
+| List options | `search`, `columns`, `pageSize`, `page`, `orderby`, `limit` | S, I | `search` match semantics and exact equality on a displayed job number are not validated against a deployed build. |
+| Authentication | OAuth2 authorization-code, resource-owner-password, implicit, client-credentials and API-key examples; bearer header and unused `scope` reported | N (grant examples), I (bearer and `scope`) | No grant choice is authorized. Least privilege must be verified through ILS governance and effective permissions, not an assumed OAuth scope. |
+| Other read resources | Customers, Sites, Schedules, Job Cost Centers, Vendor/Supplier Orders, Status Codes, Work Orders/Job Cards | N | Specific subresource schemas, rights and behavior need separate review. |
+
+**Indexed-only cautions:** The `Stage` values `Pending`, `Progress`, `Complete`, `Invoiced`, `Archived` and the reported deprecation/description of `RequestNo` were taken from indexed excerpts and were not independently confirmed against the supplied artifact by the reviewer. Regardless of source, these are administrative provider fields; they do not demonstrate field repair, FSR delivery, shipping receipt or installed parts. `Name`, `OrderNo` and `RequestNo` must **not** be assumed equivalent to ILS's job number without an authorized identity cross-check.
+
+**Search completeness:** Until provider search semantics are verified, list/search results are candidate records only. A lookup may succeed only when the permitted company scope has been checked through a bounded, complete pagination traversal and exactly one result matches a verified identifier exactly. Partial traversal or ambiguous candidates must fail closed; never silently choose the first result.
 
 ## Locally supplied machine-readable specification (official-download origin attested)
 
@@ -60,10 +64,10 @@ No production requests, credentials, proprietary schema uploads, or provider ada
 
 ## Proposed synthetic mapping boundary (not implemented)
 
-A later adapter may accept a fabricated provider-shaped object carrying `ID`, `Name`, `Customer`, `Site`, `Stage`, `Status`, and `CompletedDate`, but it must not invent an association between `ID` and normalized `job_number`. Preserve `companyID` as an explicit separate scoping key; preserve raw administrative status as raw, and keep `administrative_closed=None` unless an approved mapping establishes closure semantics. Do not assume populated `CompletedDate` establishes an instrument repair. Fabricated examples must be clearly distinguished from copied proprietary samples.
+A later adapter may accept a fabricated provider-shaped object carrying `ID`, `Name`, `Customer`, `Site`, `Stage`, `Status`, and `CompletedDate`, but it must not invent an association between `ID` and normalized `job_number`. Since `JobSummary.job_number` is required, a synthetic adapter must reject records without a verified identity mapping or introduce a separate provider-identifier representation before normalization. Preserve `companyID` as an explicit separate scoping key; preserve `Stage` and `Status` as **distinct raw values** rather than collapsing both into the single existing `administrative_status_raw` field, and keep `administrative_closed=None` unless an approved mapping establishes closure semantics. Do not assume populated `CompletedDate` establishes an instrument repair. Fabricated examples must be clearly distinguished from copied proprietary samples.
 
 The existing `OfflineJobRepository(jobs).get_job(job_number, *, company_id=None)` is a **provider-independent, offline internal contract**, not a native Simpro request. Until identity mapping is verified, do not bind that interface directly to `jobs/{jobID}`.
 
 ## Scope and governance
 
-No Simpro writes, billing/closure operations, Drive engineering-record synchronization, automatic polling, authenticated tests, or MCP deployment are authorized. See [Approval checklist](approval.md), [Roadmap](implementation-roadmap.md) and [Offline lookup](offline-lookup.md).
+No Simpro writes, billing/closure operations, webhook subscriptions, Drive engineering-record synchronization, automatic polling, authenticated tests, or MCP deployment are authorized. See [Approval checklist](approval.md), [Roadmap](implementation-roadmap.md) and [Offline lookup](offline-lookup.md).
