@@ -9,6 +9,7 @@ from ils_simpro.offline import OfflineJobRepository
 from ils_simpro.simpro_synthetic import (
     UnverifiedJobIdentityError,
     VerifiedJobIdentity,
+    _SimproStatus,
     normalize_synthetic_simpro_job,
 )
 
@@ -91,6 +92,54 @@ def test_malformed_status_rejected(status: object) -> None:
     payload["Status"] = status
     with pytest.raises(ValidationError):
         normalize_synthetic_simpro_job(payload, company_id=0, identity=verified())
+
+
+@pytest.mark.parametrize(
+    "invalid_status",
+    [
+        _SimproStatus.model_construct(ID=-1, Name=b"Approved"),
+        _SimproStatus.model_construct(ID=5, Name=""),
+        _SimproStatus.model_construct(ID=5),
+    ],
+)
+def test_prebuilt_invalid_status_instance_fails_closed(invalid_status: _SimproStatus) -> None:
+    payload = detail()
+    payload["Status"] = invalid_status
+    with pytest.raises(ValidationError):
+        normalize_synthetic_simpro_job(payload, company_id=0, identity=verified())
+
+
+def test_copied_identity_rejects_coerced_evidence_and_unknown_fields() -> None:
+    identity = verified().model_copy(update={"evidence_source": b"fabricated", "unknown": True})
+    with pytest.raises(ValidationError):
+        normalize_synthetic_simpro_job(detail(), company_id=0, identity=identity)
+
+
+@pytest.mark.parametrize("field", ["evidence_source", "job_number"])
+def test_constructed_identity_missing_required_field_fails_closed(field: str) -> None:
+    values = {
+        "company_id": 0,
+        "provider_job_id": 73,
+        "job_number": "DEMO-73",
+        "evidence_source": "fabricated-cross-check-73",
+    }
+    del values[field]
+    identity = VerifiedJobIdentity.model_construct(**values)
+    with pytest.raises(ValidationError):
+        normalize_synthetic_simpro_job(detail(), company_id=0, identity=identity)
+
+
+@pytest.mark.parametrize("field", ["job_number", "evidence_source"])
+def test_identity_strings_must_be_strict(field: str) -> None:
+    values = {
+        "company_id": 0,
+        "provider_job_id": 73,
+        "job_number": "DEMO-73",
+        "evidence_source": "fabricated-cross-check-73",
+    }
+    values[field] = b"DEMO"
+    with pytest.raises(ValidationError):
+        VerifiedJobIdentity(**values)
 
 
 def test_null_status_and_stage_preserve_unknown() -> None:
