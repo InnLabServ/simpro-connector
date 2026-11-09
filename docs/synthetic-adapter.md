@@ -48,7 +48,7 @@ assert job.administrative_status_raw == "Waiting for approval"
 assert job.administrative_closed is None
 ```
 
-The caller must supply a previously established `VerifiedJobIdentity` whose
+The caller must supply a `VerifiedJobIdentity` identity claim whose
 company and provider job IDs match the detail record. This is a **claim made by
 the caller**, not evidence that the adapter independently validated a live
 ILS job number. The public tests use only fabricated identity associations.
@@ -56,12 +56,13 @@ ILS job number. The public tests use only fabricated identity associations.
 The adapter projects two distinct raw fields into `JobSummary`: provider
 `Stage` to `administrative_stage_raw` and `Status.Name` to
 `administrative_status_raw`. Other native fields are ignored in this narrow
-projection; the provider's `Status.ID` and color are validated only if present,
-not normalized. The original native payload must be retained separately by any
+projection; a supplied `Status` object requires validated `ID` and `Name`,
+while `Color` is ignored. Only `Status.Name` is projected; `Status.ID` is not
+normalized. The original native payload must be retained separately by any
 future authorized integration that needs full fidelity.
 
 Unknown and future stages remain raw strings rather than being mapped to
-completion. Malformed types and mismatched identities fail closed. The adapter
+completion. Malformed types, invalid prebuilt Pydantic instances and mismatched identity claims fail closed. The adapter
 does **not** infer technical repair, part receipt/installation, or administrative
 closure. It must not be connected to live request transport without separate
 authorization, provider/build validation, privacy review, and a complete
