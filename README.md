@@ -11,7 +11,7 @@ This is a public, MIT-licensed prototype, not an official Simpro product or an a
 | Normalized job/part/provenance models, preserving unknown administrative states | Implemented |
 | In-memory exact job lookup with optional company scope and explicit missing/ambiguous results | Implemented, synthetic only |
 | GET-only HTTP transport with allowlisted paths, host/token checks, and bounded JSON handling | Implemented foundation; no verified Simpro endpoints |
-| Simpro-specific authentication, pagination, endpoint mapping and schemas | Not implemented or verified |
+| Synthetic Simpro detail mapping with explicit identity claims | Implemented offline; mapping to ILS job numbers unverified |\n| Bounded synthetic pagination and company-scoped exact lookup | Implemented offline; no native network adapter |\n| Simpro authentication, deployed API pagination, endpoint wiring and identity matching | Not implemented or verified |
 | Live ILS data access, synchronization, Drive writes or MCP deployment | Not authorized / not implemented |
 
 **Authority boundaries:** Simpro governs administrative authorization, scheduling, billing and closure. Engineering service records govern visits, observations, evidence and FSRs. Shipment is not receipt, installation or a verified repair.
@@ -25,11 +25,12 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
 python examples/offline_lookup.py
+python examples/offline_paged_simpro.py
 pytest -q
 ruff check .
 ```
 
-On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead of the `source` command. The example is deterministic and uses fictional `DEMO-*` records. The package has no dependency on a Simpro account for this workflow.
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead of the `source` command. Both examples are deterministic and use fictional `DEMO-*` records. The package has no dependency on a Simpro account for this workflow.
 
 ### Minimal lookup
 
@@ -51,7 +52,7 @@ except JobNotFoundError:
 
 Lookup is exact and case-sensitive; malformed identifiers and Unicode-normalized collisions are handled explicitly. A `company_id` keyword can disambiguate records, but its existence in this normalized model does **not** establish the structure of Simpro's API. Details: [Offline lookup](docs/offline-lookup.md).
 
-## Security and live-access boundary
+### Offline paged Simpro-shaped example\n\n`python examples/offline_paged_simpro.py` enumerates two fabricated pages, validates that\nthe reported total and page order are complete, and looks up `DEMO-42` using an explicit\ncaller-supplied identity claim. It prints a synthetic administrative stage and status\nwithout treating either as proof of repair or closure. Incomplete pages, duplicate IDs,\nambiguous claims and mismatched details fail closed. This is **not** a network client,\nand no actual ILS `JN####` mapping has been established.\n\n## Security and live-access boundary
 
 The library's transport is disabled by default. It requires an explicit boolean enablement flag, exact allowed paths, a token and an approved hostname even with mock transports. These are *defense-in-depth controls*, not permission to access a live system. No genuine Simpro URL, credential, customer information or production payload belongs in this repository.
 
@@ -62,7 +63,7 @@ Live use additionally requires official API contract validation, written organiz
 ## Documentation
 
 - [Architecture and system authority](docs/architecture.md)
-- [Offline lookup reference](docs/offline-lookup.md)
+- [Offline lookup reference](docs/offline-lookup.md)\n- [Offline synthetic provider mapping](docs/synthetic-adapter.md)
 - [Transport security and known limitations](docs/security.md)
 - [Simpro API discovery and unverified contract details](docs/simpro-api-contract.md)
 - [Development milestones and next gates](docs/implementation-roadmap.md)
@@ -70,6 +71,6 @@ Live use additionally requires official API contract validation, written organiz
 
 ## Project status
 
-Foundational development is complete through PRs [#1](https://github.com/InnLabServ/simpro-connector/pull/1), [#2](https://github.com/InnLabServ/simpro-connector/pull/2), [#3](https://github.com/InnLabServ/simpro-connector/pull/3) and [#4](https://github.com/InnLabServ/simpro-connector/pull/4). No release or production connection is implied.
+Offline foundations are merged through [PR #8](https://github.com/InnLabServ/simpro-connector/pull/8). Subsequent pagination work remains synthetic until a deployed contract and organizational access are approved. No release or production connection is implied.
 
 MIT licensed. Not affiliated with or endorsed by Simpro.
