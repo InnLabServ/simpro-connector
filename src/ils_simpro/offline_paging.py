@@ -135,7 +135,11 @@ def lookup_synthetic_job(
         raise TypeError("details_by_id must be a mapping")
     ids = enumerate_provider_job_ids(pages, max_pages=max_pages, max_results=max_results)
     candidates: list[VerifiedJobIdentity] = []
-    for identity in identities:
+    if isinstance(identities, (str, bytes, Mapping)):
+        raise TypeError("identities must be an iterable of VerifiedJobIdentity instances")
+    for index, identity in enumerate(identities):
+        if index >= max_results:
+            raise IncompleteProviderPagesError("Identity claim count exceeds configured bound")
         if not isinstance(identity, VerifiedJobIdentity):
             raise TypeError("identities must contain VerifiedJobIdentity instances")
         identity = VerifiedJobIdentity.model_validate(identity)
