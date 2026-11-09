@@ -227,6 +227,8 @@ def test_documented_cli_demo_runs_offline() -> None:
         timeout=15,
         check=True,
     )
-    assert "Job: DEMO-42 (synthetic)" in outcome.stdout\n    assert "Administrative stage: Progress" in outcome.stdout\n    assert "Administrative status: Awaiting approval" in outcome.stdout
+    assert "Job: DEMO-42 (synthetic)" in outcome.stdout
+    assert "Administrative stage: Progress" in outcome.stdout
+    assert "Administrative status: Awaiting approval" in outcome.stdout
     assert "Administrative closure verified: None" in outcome.stdout
     assert "No live Simpro connection" in outcome.stdout
