@@ -1,6 +1,9 @@
 """Adversarial offline pagination and identity lookup, without native API access."""
 
 import socket
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -171,3 +174,18 @@ def test_offline_lookup_does_not_open_socket(monkeypatch: pytest.MonkeyPatch) ->
 
     monkeypatch.setattr(socket.socket, "connect", forbidden)
     assert run_lookup().job_number == "DEMO-42"
+
+
+def test_documented_cli_demo_runs_offline() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    outcome = subprocess.run(
+        [sys.executable, "examples/offline_paged_simpro.py"],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=True,
+    )
+    assert "Job: DEMO-42 (synthetic)" in outcome.stdout
+    assert "Administrative closure verified: None" in outcome.stdout
+    assert "No live Simpro connection" in outcome.stdout
