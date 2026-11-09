@@ -1,6 +1,6 @@
 # Development status and roadmap
 
-As of **2026-11-07**, this page tracks merged capabilities rather than treating completed PRs as future work. A merged security foundation does **not** mean a live Simpro integration has been approved.
+This page distinguishes merged capabilities from unmerged offline development and future authorization gates. A merged security foundation does **not** mean a live Simpro integration has been approved.
 
 ## Completed
 
@@ -10,15 +10,36 @@ As of **2026-11-07**, this page tracks merged capabilities rather than treating 
 | Public API reconnaissance and CI refresh | [#2](https://github.com/InnLabServ/simpro-connector/pull/2) | Documented API discovery and unknowns; modernized GitHub Actions |
 | Offline lookup | [#3](https://github.com/InnLabServ/simpro-connector/pull/3) | Exact lookup, optional company scope, missing/ambiguous errors, immutable normalized records and no-network tests |
 | Transport hardening | [#4](https://github.com/InnLabServ/simpro-connector/pull/4) | Strict enablement, host/path/token controls, sanitized outward errors, response limits and adversarial tests |
+| Documentation and approval gates | [#5](https://github.com/InnLabServ/simpro-connector/pull/5) | Public project boundaries and documentation hygiene |
+| Warning regression fix | [#7](https://github.com/InnLabServ/simpro-connector/pull/7) | Explicitly asserted Pydantic warning behavior |
+| Public API contract evidence | [#6](https://github.com/InnLabServ/simpro-connector/pull/6) | Official-download-attested Swagger reconnaissance and explicit unknown identity semantics |
+| Synthetic provider-detail mapping | [#8](https://github.com/InnLabServ/simpro-connector/pull/8) | Explicit caller identity claim, separate raw Stage/Status, adversarial validation |
 
-## Next: verified provider-contract research
+## Current offline milestone (PR #9, under review)
 
-- Obtain the **official current** Simpro API specification through an authorized, appropriate route. Record retrieval date, version and digest; do not add proprietary material without permission.
-- Verify actual job lookup semantics, internal identifiers versus displayed job numbers, company scope, authentication, response schemas, pagination, filters, limits and error behavior.
-- Define a minimal read-only provider adapter against *verified* contracts, initially using fabricated data and mocks.
-- Document unmapped fields and unknown states explicitly; do not infer repair completion, FSR delivery or billing closure from unrelated statuses.
+- Enumerate only **fabricated** Simpro-shaped job list pages within explicit
+  maximum page and result budgets.
+- Check complete one-based page coverage, consistent reported total counts,
+  strict job IDs, and no duplicate provider IDs.
+- Perform exact scoped lookup only against an explicit caller-supplied
+  job-number identity claim and a matching fabricated detail record.
+- Provide a runnable CLI demo with synthetic `DEMO-*` values; no HTTP request.
+- Treat incomplete results or ambiguous claims as errors, not a best guess.
 
-This phase is **not yet implemented**. No guessed Simpro-native paths or payloads should be introduced as facts. Public documentation research can proceed offline; steps requiring a Simpro account or credentials depend on written system-owner authorization under [Approval checklist §1](approval.md#1-responsible-owner-and-authorization).
+The current offline enumerator is not a native API paginator or a deployed
+Simpro job lookup. It has no access to ILS accounts. Approval, schema matching,
+precise filter semantics, secure network timing and an authorized private pilot
+remain future work. The PR #9 work is not merged until separately approved.
+
+## Next gated milestone
+
+- Record version-pinned official API documentation and verify the authorized
+  ILS company and displayed job-number mapping against a single private,
+  expressly approved job.
+- Define authentic pagination headers, endpoint request parameters and retry
+  behavior before wiring any real HTTP adapter.
+- Implement an end-to-end deadline and confidential error handling before a
+  separately authorized read-only pilot.
 
 ## Before any real network connection
 
