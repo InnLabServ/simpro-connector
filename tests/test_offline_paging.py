@@ -140,6 +140,47 @@ def test_ambiguous_identity_claims_fail_closed() -> None:
         run_lookup(claims=(identity(), identity(provider_id=41)))
 
 
+def test_same_provider_id_with_different_job_numbers_is_ambiguous() -> None:
+    with pytest.raises(AmbiguousProviderIdentityError):
+        run_lookup(claims=(identity(), identity(job_number="DEMO-99")))
+
+
+@pytest.mark.parametrize(
+    "other_name",
+    ["demo-42", "ＤＥＭＯ-42"],
+)
+def test_normalized_job_number_collisions_are_ambiguous(other_name: str) -> None:
+    with pytest.raises(AmbiguousProviderIdentityError):
+        run_lookup(claims=(identity(), identity(job_number=other_name, provider_id=41)))
+
+
+def test_unrelated_conflict_in_same_company_blocks_lookup() -> None:
+    with pytest.raises(AmbiguousProviderIdentityError):
+        run_lookup(
+            claims=(
+                identity(),
+                identity(job_number="OTHER-A", provider_id=41),
+                identity(job_number="OTHER-B", provider_id=41),
+            )
+        )
+
+
+def test_other_company_conflicts_do_not_pollute_company_scope() -> None:
+    result = run_lookup(
+        claims=(
+            identity(),
+            identity(job_number="OTHER-A", provider_id=41, company_id=1),
+            identity(job_number="OTHER-B", provider_id=41, company_id=1),
+        )
+    )
+    assert result.job_number == "DEMO-42"
+
+
+def test_distinct_claims_for_distinct_jobs_remain_valid() -> None:
+    result = run_lookup(claims=(identity(), identity(job_number="DEMO-41", provider_id=41)))
+    assert result.job_number == "DEMO-42"
+
+
 def test_company_mismatch_is_not_a_candidate() -> None:
     with pytest.raises(ProviderJobNotFoundError):
         run_lookup(claims=(identity(company_id=1),))
@@ -186,6 +227,6 @@ def test_documented_cli_demo_runs_offline() -> None:
         timeout=15,
         check=True,
     )
-    assert "Job: DEMO-42 (synthetic)" in outcome.stdout
+    assert "Job: DEMO-42 (synthetic)" in outcome.stdout\n    assert "Administrative stage: Progress" in outcome.stdout\n    assert "Administrative status: Awaiting approval" in outcome.stdout
     assert "Administrative closure verified: None" in outcome.stdout
     assert "No live Simpro connection" in outcome.stdout
