@@ -125,10 +125,17 @@ class AsyncSimproClient:
                     not in ("", "identity")
                 ):
                     return ("response", None)
-                async for chunk in response.aiter_raw():
-                    if len(body) + len(chunk) > self._config.max_response_bytes:
+                if response.is_stream_consumed:
+                    # HTTPX MockTransport responses made with json= or content=
+                    # can already be consumed before async send returns.
+                    if len(response.content) > self._config.max_response_bytes:
                         return ("response", None)
-                    body.extend(chunk)
+                    body.extend(response.content)
+                else:
+                    async for chunk in response.aiter_raw():
+                        if len(body) + len(chunk) > self._config.max_response_bytes:
+                            return ("response", None)
+                        body.extend(chunk)
             try:
                 value = json.loads(
                     body.decode("utf-8"),
