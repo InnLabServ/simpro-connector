@@ -79,8 +79,8 @@ def test_complete_empty_snapshot_is_supported_but_not_matched() -> None:
         (page(), page(2, 3, ids=(42,))),
         (page(), page(2, ids=(41,))),
         (page(), page(2, ids=())),
-        (page(), page(2, ids=(42,)), page(3, 3, 3, ({"ID": 43},))),
-        (page(1, 2, 2, (41, 42)), page(2, ids=())),
+        (page(), page(2, ids=(42,)), page(3, 3, 3, (43,))),
+        (page(1, 2, 3, (41, 42)), page(2, 2, 3, ())),
     ],
 )
 def test_partial_duplicate_and_inconsistent_pages_fail_closed(
