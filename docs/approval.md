@@ -21,7 +21,7 @@
 
 - [ ] Retrieve and verify current official API contracts, host, company/identifier semantics, paging, limits and error behavior.
 - [ ] Confirm least-privilege read-only credentials, private storage, rotation and revocation.
-- [ ] Implement a **true end-to-end request deadline** including connection, TLS, headers and body, and test slow/trickling responses. Existing checks do not provide one.
+- [ ] Implement and independently verify a **hard end-to-end request deadline** including connection, TLS, headers, body and parsing, even for relevant non-cooperative blocking behavior. The optional async mock client uses a cooperative `asyncio.timeout` across the whole request and is covered by slow-header/trickling-body tests, but does **not** establish hard preemptive production behavior. The synchronous client still lacks a total request deadline.
 - [ ] Verify exact allowed request paths and approved hostnames against actual authorized deployment requirements.
 - [ ] Require a private deployment with access controls, field minimization, audit trails and error reporting that does not capture secrets or raw customer data.
 - [ ] Define credential-exposure response, including detection, escalation, immediate revocation, cleanup and approved incident reporting.
