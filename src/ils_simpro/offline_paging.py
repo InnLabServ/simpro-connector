@@ -6,6 +6,7 @@ No network, filesystem, credential or real-job access.
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+import unicodedata
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
@@ -124,7 +125,8 @@ def lookup_synthetic_job(
 ) -> JobSummary:
     """Exact scoped lookup only after verifying an entire synthetic page sequence.
 
-    Identity evidence is only a caller claim, not proof of an ILS job mapping.
+    Identity evidence and the page's company scope are caller assertions, not
+    independent proof of an ILS job mapping or provider response.
     """
     if type(job_number) is not str:
         raise TypeError("job_number must be a string")
@@ -135,6 +137,8 @@ def lookup_synthetic_job(
         raise TypeError("details_by_id must be a mapping")
     ids = enumerate_provider_job_ids(pages, max_pages=max_pages, max_results=max_results)
     candidates: list[VerifiedJobIdentity] = []
+    provider_to_job: dict[int, str] = {}
+    normalized_jobs: dict[str, str] = {}
     if isinstance(identities, (str, bytes, Mapping)):
         raise TypeError("identities must be an iterable of VerifiedJobIdentity instances")
     for index, identity in enumerate(identities):
@@ -143,7 +147,18 @@ def lookup_synthetic_job(
         if not isinstance(identity, VerifiedJobIdentity):
             raise TypeError("identities must contain VerifiedJobIdentity instances")
         identity = VerifiedJobIdentity.model_validate(identity)
-        if identity.company_id == company_id and identity.job_number == job_number:
+        if identity.company_id != company_id:
+            continue
+        previous_job = provider_to_job.get(identity.provider_job_id)
+        if previous_job is not None and previous_job != identity.job_number:
+            raise AmbiguousProviderIdentityError("Provider ID has conflicting job-number claims")
+        provider_to_job[identity.provider_job_id] = identity.job_number
+        normalized = unicodedata.normalize("NFKC", identity.job_number).casefold()
+        previous_spelling = normalized_jobs.get(normalized)
+        if previous_spelling is not None and previous_spelling != identity.job_number:
+            raise AmbiguousProviderIdentityError("Conflicting normalized job-number claims")
+        normalized_jobs[normalized] = identity.job_number
+        if identity.job_number == job_number:
             candidates.append(identity)
     if not candidates:
         raise ProviderJobNotFoundError("No matching verified identity claim in scope")
