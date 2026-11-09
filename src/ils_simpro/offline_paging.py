@@ -4,9 +4,9 @@ Page metadata and details are caller-supplied synthetic values, not API response
 No network, filesystem, credential or real-job access.
 """
 
+import unicodedata
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-import unicodedata
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
