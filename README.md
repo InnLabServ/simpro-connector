@@ -10,7 +10,7 @@ This is a public, MIT-licensed prototype, not an official Simpro product or an a
 | --- | --- |
 | Normalized job/part/provenance models, preserving unknown administrative states | Implemented |
 | In-memory exact job lookup with optional company scope and explicit missing/ambiguous results | Implemented, synthetic only |
-| GET-only HTTP transport with allowlisted paths, host/token checks, and bounded JSON handling | Implemented foundation; no verified Simpro endpoints |
+| GET-only HTTP transport with allowlisted paths, host/token checks, and bounded JSON handling | Implemented foundation; no verified Simpro endpoints |\n| Optional async GET mock transport with one cooperative total deadline | Implemented for offline tests; not a hard preemptive deadline or a production transport |
 | Synthetic Simpro detail mapping with explicit identity claims | Implemented offline; mapping to ILS job numbers unverified |
 | Bounded synthetic pagination and company-scoped exact lookup | Implemented offline; no native network adapter |
 | Simpro authentication, deployed API pagination, endpoint wiring and identity matching | Not implemented or verified |
@@ -69,7 +69,7 @@ The library's transport is disabled by default. It requires an explicit boolean 
 
 There is **no environment-variable configuration loader**. The sample `.env.example` describes hypothetical settings only and is not read by this package. Do not put credentials into it.
 
-Live use additionally requires official API contract validation, written organizational authorization, contractual/privacy review and a private deployment. The existing request timing checks **do not guarantee an end-to-end deadline**.
+Live use additionally requires official API contract validation, written organizational authorization, contractual/privacy review and a private deployment. The original synchronous client **does not guarantee an end-to-end deadline**. The optional async client adds a total **cooperative** timeout across request and body phases, verified against fabricated mocks. Non-cooperative blocking code may still exceed it; a hard production deadline remains an open gate.
 
 ## Documentation
 
@@ -83,6 +83,6 @@ Live use additionally requires official API contract validation, written organiz
 
 ## Project status
 
-Offline foundations are merged through [PR #8](https://github.com/InnLabServ/simpro-connector/pull/8). Subsequent pagination work remains synthetic until a deployed contract and organizational access are approved. No release or production connection is implied.
+Offline foundations are merged through [PR #9](https://github.com/InnLabServ/simpro-connector/pull/9). The optional async deadline path remains mock-only until reviewed and approved for its own scope. Subsequent provider work remains synthetic until a deployed contract and organizational access are approved. No release or production connection is implied.
 
 MIT licensed. Not affiliated with or endorsed by Simpro.
