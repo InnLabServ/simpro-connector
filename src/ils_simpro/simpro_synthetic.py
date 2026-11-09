@@ -18,14 +18,14 @@ class UnverifiedJobIdentityError(ValueError):
 
 
 class VerifiedJobIdentity(BaseModel):
-    """Explicit externally checked association; synthetic evidence only in public fixtures."""
+    """Caller-supplied identity claim; only synthetic evidence in public fixtures."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, revalidate_instances="always")
 
     company_id: Annotated[StrictInt, Field(ge=0)]
     provider_job_id: Annotated[StrictInt, Field(ge=1)]
-    job_number: str = Field(min_length=1)
-    evidence_source: str = Field(min_length=1)
+    job_number: Annotated[str, Strict(), Field(min_length=1)]
+    evidence_source: Annotated[str, Strict(), Field(min_length=1)]
 
     @field_validator("job_number", "evidence_source")
     @classmethod
@@ -35,7 +35,7 @@ class VerifiedJobIdentity(BaseModel):
 
 class _SimproStatus(BaseModel):
     # Simpro Status is an object, not the Stage enum string.
-    model_config = ConfigDict(extra="ignore", frozen=True)
+    model_config = ConfigDict(extra="ignore", frozen=True, revalidate_instances="always")
 
     ID: Annotated[StrictInt, Field(ge=0)]
     Name: Annotated[str, Strict(), Field(min_length=1)]
@@ -60,10 +60,11 @@ def normalize_synthetic_simpro_job(
     company_id: int,
     identity: VerifiedJobIdentity | None,
 ) -> JobSummary:
-    """Validate a fabricated Simpro detail and apply a separately verified identity.
+    """Validate fabricated detail using a caller-supplied identity claim.
 
-    This is deliberately not a live Simpro client. It accepts neither an
-    inferred ID-to-JN mapping nor an unchecked company identity.
+    The claim is checked for structure, company and provider ID consistency,
+    not independently verified against ILS records. No live access or inferred
+    ID-to-JN mapping is performed.
     """
     if not isinstance(payload, Mapping):
         raise TypeError("payload must be a mapping")
@@ -73,15 +74,9 @@ def normalize_synthetic_simpro_job(
         raise UnverifiedJobIdentityError("A verified provider-to-job identity is required")
     if not isinstance(identity, VerifiedJobIdentity):
         raise TypeError("identity must be a VerifiedJobIdentity")
-    # model_copy(update=...) bypasses validation; reconstruct from fields.
-    identity = VerifiedJobIdentity.model_validate(
-        {
-            "company_id": identity.company_id,
-            "provider_job_id": identity.provider_job_id,
-            "job_number": identity.job_number,
-            "evidence_source": identity.evidence_source,
-        }
-    )
+    # Revalidate the entire instance, including copied extras and missing fields.
+    # The identity model opts into revalidate_instances="always".
+    identity = VerifiedJobIdentity.model_validate(identity)
     # Deliberately validate before comparing ID or normalizing any fields.
     detail = _SimproJobDetail.model_validate(payload)
     if identity.company_id != company_id or identity.provider_job_id != detail.ID:
