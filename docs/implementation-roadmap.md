@@ -9,7 +9,11 @@ This page distinguishes merged capabilities from unmerged offline development an
 | Package foundation | [#1](https://github.com/InnLabServ/simpro-connector/pull/1) | GET-only transport concept, normalized models, fictional fixtures, tests and CI |
 | Public API reconnaissance and CI refresh | [#2](https://github.com/InnLabServ/simpro-connector/pull/2) | Documented API discovery and unknowns; modernized GitHub Actions |
 | Offline lookup | [#3](https://github.com/InnLabServ/simpro-connector/pull/3) | Exact lookup, optional company scope, missing/ambiguous errors, immutable normalized records and no-network tests |
-| Transport hardening | [#4](https://github.com/InnLabServ/simpro-connector/pull/4) | Strict enablement, host/path/token controls, sanitized outward errors, response limits and adversarial tests |\n| Public API contract evidence | [#6](https://github.com/InnLabServ/simpro-connector/pull/6) | Official-download-attested Swagger reconnaissance and explicit unknown identity semantics |\n| Synthetic provider-detail mapping | [#8](https://github.com/InnLabServ/simpro-connector/pull/8) | Explicit caller identity claim, separate raw Stage/Status, adversarial validation |
+| Transport hardening | [#4](https://github.com/InnLabServ/simpro-connector/pull/4) | Strict enablement, host/path/token controls, sanitized outward errors, response limits and adversarial tests |
+| Documentation and approval gates | [#5](https://github.com/InnLabServ/simpro-connector/pull/5) | Public project boundaries and documentation hygiene |
+| Warning regression fix | [#7](https://github.com/InnLabServ/simpro-connector/pull/7) | Explicitly asserted Pydantic warning behavior |
+| Public API contract evidence | [#6](https://github.com/InnLabServ/simpro-connector/pull/6) | Official-download-attested Swagger reconnaissance and explicit unknown identity semantics |
+| Synthetic provider-detail mapping | [#8](https://github.com/InnLabServ/simpro-connector/pull/8) | Explicit caller identity claim, separate raw Stage/Status, adversarial validation |
 
 ## Current offline milestone (PR #9, under review)
 
