@@ -165,6 +165,31 @@ def test_unrelated_conflict_in_same_company_blocks_lookup() -> None:
         )
 
 
+@pytest.mark.parametrize("reverse_order", [False, True])
+def test_unrelated_job_number_claimed_by_two_provider_ids_fails_closed(
+    reverse_order: bool,
+) -> None:
+    conflicting = (
+        identity(job_number="A", provider_id=41),
+        identity(job_number="A", provider_id=43),
+    )
+    if reverse_order:
+        conflicting = tuple(reversed(conflicting))
+    with pytest.raises(AmbiguousProviderIdentityError):
+        run_lookup(claims=(identity(), *conflicting))
+
+
+def test_unrelated_normalized_alias_with_different_provider_ids_fails_closed() -> None:
+    with pytest.raises(AmbiguousProviderIdentityError):
+        run_lookup(
+            claims=(
+                identity(),
+                identity(job_number="OTHER", provider_id=41),
+                identity(job_number="other", provider_id=43),
+            )
+        )
+
+
 def test_other_company_conflicts_do_not_pollute_company_scope() -> None:
     result = run_lookup(
         claims=(
