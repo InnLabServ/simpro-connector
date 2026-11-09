@@ -138,7 +138,7 @@ def lookup_synthetic_job(
     ids = enumerate_provider_job_ids(pages, max_pages=max_pages, max_results=max_results)
     candidates: list[VerifiedJobIdentity] = []
     provider_to_job: dict[int, str] = {}
-    normalized_jobs: dict[str, str] = {}
+    normalized_jobs: dict[str, tuple[str, int]] = {}
     if isinstance(identities, (str, bytes, Mapping)):
         raise TypeError("identities must be an iterable of VerifiedJobIdentity instances")
     for index, identity in enumerate(identities):
@@ -154,10 +154,11 @@ def lookup_synthetic_job(
             raise AmbiguousProviderIdentityError("Provider ID has conflicting job-number claims")
         provider_to_job[identity.provider_job_id] = identity.job_number
         normalized = unicodedata.normalize("NFKC", identity.job_number).casefold()
-        previous_spelling = normalized_jobs.get(normalized)
-        if previous_spelling is not None and previous_spelling != identity.job_number:
+        previous_claim = normalized_jobs.get(normalized)
+        current_claim = (identity.job_number, identity.provider_job_id)
+        if previous_claim is not None and previous_claim != current_claim:
             raise AmbiguousProviderIdentityError("Conflicting normalized job-number claims")
-        normalized_jobs[normalized] = identity.job_number
+        normalized_jobs[normalized] = current_claim
         if identity.job_number == job_number:
             candidates.append(identity)
     if not candidates:
